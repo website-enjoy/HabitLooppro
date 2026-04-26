@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TECH SHOP POS - Key Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.9);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #10b981;
+            --accent-hover: #059669;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top right, rgba(16, 185, 129, 0.15), transparent 40%);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+
+        h2 { margin-top: 0; font-weight: 700; font-size: 2rem; color: #10b981; }
+        p { color: var(--text-muted); font-size: 1rem; margin-bottom: 24px; line-height: 1.5;}
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: rgba(0, 0, 0, 0.3);
+            color: white;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+            font-size: 1.2rem;
+            font-family: monospace;
+            letter-spacing: 2px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        input:focus { 
+            border-color: var(--accent); 
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        input[readonly] {
+            background-color: rgba(16, 185, 129, 0.05);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            margin-bottom: 20px;
+        }
+
+        button:hover { 
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
+        }
+        button:active { transform: translateY(0); }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 10px;
+            font-size: 0.9rem;
+            width: auto;
+            margin: 0;
+            display: inline-block;
+        }
+
+        .copy-btn:hover {
+            background: rgba(16, 185, 129, 0.1);
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2><i class="fas fa-key"></i> Key Generator</h2>
+        <p>Generate secure, hardware-bound offline activation codes for your customers.</p>
+
+        <div class="input-group">
+            <label>Customer's Machine ID</label>
+            <input type="text" id="machineId" placeholder="XXXX-XXXX" autocomplete="off" maxlength="9">
+        </div>
+
+        <button onclick="generateLicense()"><i class="fas fa-cog fa-spin-hover"></i> Generate Code</button>
+
+        <div class="input-group">
+            <label>Activation Code (Send this to customer)</label>
+            <input type="text" id="activationCode" readonly placeholder="XXXX-XXXX-XXXX-XXXX">
+        </div>
+    </div>
+
+    <script>
+        const SECRET_SALT = "TECH_POS_SECRET_KEY_2026";
+        
+        // Auto-format the Machine ID as the user types
+        document.getElementById('machineId').addEventListener('input', function(e) {
+            let val = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+            if (val.length > 4) {
+                val = val.substring(0, 4) + '-' + val.substring(4);
+            }
+            e.target.value = val;
+        });
+
+        async function generateLicense() {
+            let machineId = document.getElementById('machineId').value.trim().toUpperCase();
+            
+            if (!machineId || machineId.length !== 9 || !machineId.includes('-')) {
+                alert("Please enter a valid 8-character Machine ID (e.g., ABCD-1234)");
+                return;
+            }
+            
+            try {
+                const payload = machineId + SECRET_SALT;
+                const msgBuffer = new TextEncoder().encode(payload);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+                
+                // Format first 16 chars: XXXX-XXXX-XXXX-XXXX
+                const code = hashHex.substring(0, 4) + '-' + 
+                             hashHex.substring(4, 8) + '-' + 
+                             hashHex.substring(8, 12) + '-' + 
+                             hashHex.substring(12, 16);
+                
+                document.getElementById('activationCode').value = code;
+            } catch (err) {
+                alert("Error generating key.");
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
